@@ -34,21 +34,21 @@ BLOB_PREFIX = "empetur-consumo"
 def blob_client():
     if not os.environ.get("BLOB_READ_WRITE_TOKEN"):
         return None
-    from vercel.blob import BlobClient
-    return BlobClient()
+    from vercel.blob import sync as blob
+    return blob
 
 
 def blob_bytes(client, pathname: str) -> bytes | None:
-    result = client.get(pathname, access="private")
-    if result is None or result.status_code != 200:
+    try:
+        return client.get_blob(pathname, access="private").body
+    except FileNotFoundError:
         return None
-    return b"".join(result.stream)
 
 
 def save_import(import_id: str, document: bytes) -> None:
     client = blob_client()
     if client:
-        client.put(f"{BLOB_PREFIX}/imports/{import_id}.pdf", document, access="private", content_type="application/pdf")
+        client.put_blob(f"{BLOB_PREFIX}/imports/{import_id}.pdf", document, access="private", content_type="application/pdf")
     else:
         IMPORTS.mkdir(parents=True, exist_ok=True)
         (IMPORTS / f"{import_id}.pdf").write_bytes(document)
@@ -79,9 +79,9 @@ def save_data(data: dict) -> None:
         previous = blob_bytes(client, f"{BLOB_PREFIX}/records.json")
         if previous is not None:
             snapshot = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}.json"
-            client.put(f"{BLOB_PREFIX}/revisions/{snapshot}", previous, access="private", content_type="application/json")
+            client.put_blob(f"{BLOB_PREFIX}/revisions/{snapshot}", previous, access="private", content_type="application/json")
         content = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-        client.put(f"{BLOB_PREFIX}/records.json", content, access="private", content_type="application/json", overwrite=True)
+        client.put_blob(f"{BLOB_PREFIX}/records.json", content, access="private", content_type="application/json", allow_overwrite=True)
         return
     if os.environ.get("VERCEL"):
         raise RuntimeError("Configure um Vercel Blob privado antes de publicar dados.")
@@ -280,3 +280,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("EMPETUR_PORT", "8765"))
     print(f"Painel EMPETUR em http://{host}:{port}/", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
+
