@@ -1,0 +1,13 @@
+{
+  "resource": "energy",
+  "period": "AAAA-MM",
+  "consumption": null,
+  "total_brl": null,
+  "consumption_missing_confirmed": false,
+  "total_missing_confirmed": false,
+  "water_brl": null,
+  "sewage_brl": null,
+  "source_url": null,
+  "receipt_url": null,
+  "receipt_approved": false
+}

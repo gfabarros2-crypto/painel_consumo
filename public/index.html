@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071d35">
+  <meta name="description" content="Consulta mensal do consumo de água e energia da EMPETUR, com valores, histórico e metodologia.">
+  <title>Consumo de água e energia | EMPETUR</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#consulta">Ir para a consulta</a>
+  <header class="hero">
+    <nav class="topbar wrap" aria-label="Navegação principal">
+      <a class="brand" href="https://www.empetur.pe.gov.br/" aria-label="EMPETUR, voltar ao portal">
+        <img src="assets/empetur-logo-branca.png" alt="EMPETUR">
+      </a>
+      <div class="navlinks">
+        <a href="https://www.empetur.pe.gov.br/">Portal EMPETUR</a>
+        <a href="#metodologia">Metodologia</a>
+      </div>
+    </nav>
+    <div class="wrap hero-content">
+      <div class="breadcrumbs"><a href="https://www.empetur.pe.gov.br/">Portal</a><span aria-hidden="true">/</span><span>Transparência</span><span aria-hidden="true">/</span><strong>Consumo</strong></div>
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow"><span class="eyebrow-dot"></span> Transparência ativa · Lei estadual nº 16.847/2020</p>
+          <h1>Água e energia,<br><em>mês a mês.</em></h1>
+          <p class="hero-lead">Consulte quanto a EMPETUR consumiu e pagou, acompanhe a evolução e confira a origem de cada informação.</p>
+          <a class="hero-link" href="#consulta">Explorar o painel <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+          <div class="art-water">m³<span>ÁGUA</span></div>
+          <div class="art-line"></div>
+          <div class="art-energy">kWh<span>ENERGIA</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="consulta" class="main wrap">
+    <section class="panel-head" aria-labelledby="consulta-titulo">
+      <div>
+        <p class="section-kicker">Consulta mensal</p>
+        <h2 id="consulta-titulo">Explore os dados publicados</h2>
+        <p>Selecione o recurso e a competência. O histórico e os indicadores acompanham sua escolha.</p>
+      </div>
+      <div class="data-note"><span class="data-note-mark" aria-hidden="true">i</span><span>Valores exibidos apenas quando confirmados em fonte oficial.</span></div>
+    </section>
+
+    <section class="dashboard" aria-label="Painel de consumo">
+      <div class="control-bar">
+        <div class="tabs" role="tablist" aria-label="Recurso">
+          <button id="tab-water" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="dashboard-content" data-resource="water"><span class="tab-icon water-icon" aria-hidden="true">◈</span> Água</button>
+          <button id="tab-energy" class="tab" type="button" role="tab" aria-selected="false" aria-controls="dashboard-content" data-resource="energy" tabindex="-1"><span class="tab-icon energy-icon" aria-hidden="true">ϟ</span> Energia</button>
+        </div>
+        <div class="filters">
+          <label for="year-select">Ano
+            <select id="year-select" disabled><option>—</option></select>
+          </label>
+          <label for="month-select">Mês de referência
+            <select id="month-select" disabled><option>—</option></select>
+          </label>
+        </div>
+      </div>
+
+      <div id="dashboard-content" role="tabpanel" aria-labelledby="tab-water" aria-live="polite">
+        <div id="loading" class="message" role="status">Carregando dados de consumo…</div>
+        <div id="error" class="message error" role="alert" hidden><strong>Não foi possível carregar os dados.</strong><p>Verifique a conexão e tente novamente.</p><button type="button" id="retry">Tentar novamente</button></div>
+        <div id="empty" class="message empty" hidden><div class="empty-symbol" aria-hidden="true">—</div><h3>Sem dados para esta seleção</h3><p id="empty-detail">A EMPETUR ainda não publicou valores normalizados para este período.</p><a id="empty-source" href="https://www.empetur.pe.gov.br/consumo-de-agua" target="_blank" rel="noopener noreferrer">Consultar a página de origem ↗</a></div>
+        <div id="results" hidden>
+          <div class="period-heading"><div><p class="micro">COMPETÊNCIA SELECIONADA</p><h3 id="period-title"></h3></div><span id="status" class="status"></span></div>
+          <div class="metrics">
+            <article class="metric primary"><p>Consumo do mês</p><strong id="consumption">—</strong><span id="consumption-unit">m³ registrados</span></article>
+            <article class="metric"><p>Valor total faturado</p><strong id="total">—</strong><span>Valor cobrado na competência</span></article>
+            <article class="metric"><p>Média dos seis meses anteriores</p><strong id="average">—</strong><span id="average-note">Meses-calendário anteriores</span></article>
+            <article class="metric"><p>Variação sobre a média</p><strong id="variation">—</strong><span id="variation-note">Comparação do consumo</span></article>
+          </div>
+          <p id="comparison-explanation" class="comparison-explanation" hidden></p>
+          <div class="content-grid">
+            <section class="card chart-card" aria-labelledby="chart-title">
+              <div class="card-head"><div><p class="micro">EVOLUÇÃO MENSAL</p><h3 id="chart-title">Consumo e referência histórica</h3></div><span id="chart-unit" class="unit-badge">m³</span></div>
+              <div class="legend"><span id="legend-primary"><i class="legend-bar" aria-hidden="true"></i>Consumo registrado</span><span id="legend-reference"><i class="legend-line" aria-hidden="true"></i>Média dos seis meses anteriores</span></div>
+              <div id="chart" class="chart" role="img"></div>
+              <p id="chart-caption" class="chart-caption"></p>
+            </section>
+            <section class="card detail-card" aria-labelledby="detail-title">
+              <div class="card-head"><div><p class="micro">DETALHAMENTO</p><h3 id="detail-title">Composição da fatura</h3></div></div>
+              <dl id="detail-list" class="detail-list"></dl>
+              <div id="receipt" class="receipt"></div>
+            </section>
+          </div>
+          <section class="card history-card" aria-labelledby="history-title">
+            <div class="card-head"><div><p class="micro">SÉRIE DE REFERÊNCIA</p><h3 id="history-title">Meses usados na comparação</h3></div><span>Seis anteriores + mês selecionado</span></div>
+            <div class="table-scroll"><table><caption class="sr-only">Histórico de consumo e valor faturado</caption><thead><tr><th scope="col">Competência</th><th scope="col">Consumo</th><th scope="col">Valor faturado</th><th scope="col">Registro</th></tr></thead><tbody id="history-body"></tbody></table></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section id="metodologia" class="method" aria-labelledby="method-title">
+      <div><p class="section-kicker">Sobre os dados</p><h2 id="method-title">Como o painel é calculado</h2><p id="update-note">Última atualização: aguardando leitura da base.</p></div>
+      <div class="method-copy">
+        <p><strong>Fonte.</strong> Os valores são transcritos dos demonstrativos publicados pela EMPETUR. <a id="water-source" href="https://www.empetur.pe.gov.br/consumo-de-agua" target="_blank" rel="noopener noreferrer">Fonte de água ↗</a> · <a id="energy-source" href="https://www.empetur.pe.gov.br/consumo-de-agua" target="_blank" rel="noopener noreferrer">Fonte de energia ↗</a> · <a href="planilhas/agua-empetur-2022.pdf" target="_blank" rel="noopener noreferrer">PDF de água de 2022 ↗</a> · <a href="planilhas/energia-empetur-2022.pdf" target="_blank" rel="noopener noreferrer">PDF de energia de 2022 ↗</a></p>
+        <p><strong>Média e variação.</strong> A média usa o consumo dos seis meses-calendário anteriores ao selecionado, inclusive na virada de ano. A variação é (consumo do mês ÷ média − 1) × 100. Mês sem valor de consumo impede a comparação; zero registrado conta como dado. Média zero também impede o percentual. Se a fonte trouxer apenas a fatura, o painel mostra R$ sem inferir kWh.</p>
+        <p><strong>Classificação.</strong> A <a href="legislacao/lei-16847-2020.pdf" target="_blank" rel="noopener noreferrer">Lei nº 16.847/2020 ↗</a> define consciente abaixo da média, adequado até 10% acima, alerta de 11% a 50% e abusivo a partir de 50%. As faixas entre 10% e 11% e exatamente 50% aguardam interpretação institucional; nesses casos, o painel mostra a variação sem atribuir classe.</p>
+        <p><strong>Comprovantes.</strong> Um link de comprovante aparece somente quando um arquivo é indicado e aprovado para divulgação. Demonstrativo mensal e comprovante são documentos distintos.</p>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><div class="wrap footer-inner"><img src="assets/empetur-logo-branca.png" alt="EMPETUR"><div><strong>Transparência para acompanhar cada mês.</strong><span>Empresa de Turismo de Pernambuco Governador Eduardo Campos</span></div><a href="https://www.empetur.pe.gov.br/consumo-de-agua" target="_blank" rel="noopener noreferrer">Página original e planilhas ↗</a></div></footer>
+</body>
+</html>

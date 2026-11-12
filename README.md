@@ -73,4 +73,3 @@ node --check public/admin.js
 ```
 
 Os testes cobrem virada de ano, histórico incompleto, zero registrado, ausência de kWh, limites legais, comprovante ausente e extração dos PDFs de água e energia. A API de prévia, revisão/publicação e consulta pública também foi exercitada com uma cópia isolada da base. O layout e as abas foram verificados em desktop e largura móvel.
-

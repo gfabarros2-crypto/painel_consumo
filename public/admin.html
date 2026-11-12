@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Abastecer painel | EMPETUR</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="admin.js" defer></script>
+</head>
+<body class="admin-body">
+  <main class="admin-shell">
+    <div class="admin-top"><a href="./">← Voltar ao painel</a><span class="section-kicker">ÁREA DE ABASTECIMENTO</span></div>
+    <header class="admin-header"><h1>Atualizar os dados mensais</h1><p>Envie o demonstrativo em PDF. Revise os meses reconhecidos, corrija o que faltar e publique somente depois de conferir os valores no documento original.</p></header>
+    <p id="demo-banner" class="admin-alert" hidden>Ambiente de demonstração: esta publicação altera somente uma cópia de teste dos dados.</p>
+    <section class="admin-step" aria-labelledby="upload-title"><h2 id="upload-title">1. Enviar demonstrativo</h2><p>A leitura automática funciona para PDFs com texto selecionável e linhas mensais. Em PDFs digitalizados, use “Adicionar mês manualmente”.</p>
+      <form id="upload-form" class="admin-form-grid">
+        <label class="field">Recurso<select id="admin-resource" name="resource"><option value="water">Água</option><option value="energy">Energia</option></select></label>
+        <label class="field">PDF do demonstrativo<input id="document" name="document" type="file" accept="application/pdf,.pdf"></label>
+        <button class="primary-button" type="submit">Ler PDF</button>
+      </form>
+      <label class="field" style="margin-top:15px;max-width:640px">Link da publicação oficial, se disponível<input id="bulk-source-url" type="url" placeholder="https://www.empetur.pe.gov.br/…"></label>
+      <div class="admin-actions"><button id="add-manual" class="secondary-button" type="button">+ Adicionar mês manualmente</button><a id="local-pdf" href="#" target="_blank" rel="noopener noreferrer" hidden>Abrir PDF enviado ↗</a></div>
+      <p id="upload-message" class="admin-alert" role="status" hidden></p>
+    </section>
+    <section id="review-section" class="admin-step" aria-labelledby="review-title" hidden><h2 id="review-title">2. Conferir e corrigir</h2><p>Os campos em branco exigem conferência: corrija o valor quando ele estiver no PDF ou confirme que a fonte realmente não o informa. Use números sem separador de milhar (ex.: 5839 ou 5839,50). Uma nova publicação para o mesmo recurso e mês substitui o registro anterior.</p>
+      <div id="review-rows"></div>
+      <div class="admin-actions"><button id="publish" class="primary-button" type="button">Publicar meses revisados</button><button id="add-another" class="secondary-button" type="button">+ Adicionar outro mês</button><button id="confirm-missing" class="secondary-button" type="button">Confirmar campos vazios após conferência</button></div>
+      <p id="review-message" class="admin-alert" role="status" hidden></p>
+    </section>
+    <p class="admin-footer-note">O PDF enviado fica guardado na área privada do servidor para auditoria. Um comprovante só aparece no painel público quando seu link e a aprovação para divulgação forem informados.</p>
+  </main>
+</body>
+</html>

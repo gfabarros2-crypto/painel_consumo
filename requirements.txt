@@ -1,0 +1,2 @@
+pdfplumber==0.11.9
+vercel>=0.5.0,<1
