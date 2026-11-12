@@ -33,11 +33,11 @@ Abra `http://127.0.0.1:8765/` para o painel e `http://127.0.0.1:8765/admin.html`
 
 ## Atualizar todo mês
 
-1. Acesse `/admin.html` e escolha **Água** ou **Energia**.
+1. Acesse `/admin.html`. Para o primeiro uso, abra a aba **Como atualizar**; depois volte a **Atualizar dados** e escolha **Água** ou **Energia**.
 2. Envie o PDF recebido (até 4 MB). O sistema extrai linhas mensais com texto selecionável e mostra uma prévia. Se o arquivo for digitalizado, use **Adicionar mês manualmente**.
 3. Compare cada linha com o PDF. Corrija competência, consumo e valor total; preencha água e esgoto apenas quando discriminados. Se um campo estiver realmente vazio na fonte, confirme essa ausência na linha ou use **Confirmar campos vazios após conferência** depois de revisar o documento. O link da publicação oficial pode ser aplicado a todos os meses do arquivo.
 4. Se houver um comprovante **aprovado para divulgação**, informe sua URL HTTPS e marque a aprovação. Sem os dois dados, o link não aparece no painel público.
-5. Clique em **Publicar meses revisados**. Uma competência já existente é substituída; o estado anterior é salvo em `data/revisions/`. O PDF enviado fica em `data/imports/` para auditoria.
+5. Clique em **Publicar meses revisados**. Uma competência já existente é substituída; o estado anterior e o PDF enviado ficam guardados para auditoria em `data/` localmente ou no Blob privado da Vercel.
 
 No servidor local, o JSON normalizado fica em `data/records.json`. Na Vercel, fica no Blob privado em `empetur-consumo/records.json`. Para implantações locais com armazenamento em volume separado, configure `EMPETUR_DATA_DIR`. O arquivo `data/modelo-registro.json` mostra o esquema para cargas automatizadas. Não edite a interface para adicionar meses.
 
@@ -45,7 +45,7 @@ Campos obrigatórios por mês: `resource` (`water` ou `energy`), `period` (`AAAA
 
 ## Integração no portal
 
-- **Entrada pública:** `public/index.html`, servido por `server.py`. Publique o módulo em um host próprio ou sob `/consumo/` por proxy reverso que remova esse prefixo antes de encaminhar a solicitação. Os recursos da página e as chamadas à API usam caminhos relativos.
+- **Entrada pública:** `public/index.html`, servido como arquivo estático pela Vercel ou por `server.py` localmente. Publique o módulo em um host próprio ou sob `/consumo/` por proxy reverso que remova esse prefixo antes de encaminhar a solicitação. Os recursos da página e as chamadas à API usam caminhos relativos.
 - **Página atual:** mantenha no portal o acesso às planilhas originais e acrescente um link para o novo painel, ou faça a rota atual apontar para ele. Como o código do Joomla/portal não foi fornecido, não alteramos sua navegação nem sua página existente.
 - **Página inicial:** a lei prevê um símbolo de consumo na página inicial. Insira no HTML do portal:
 

@@ -13,6 +13,11 @@
     <div class="admin-top"><a href="./">← Voltar ao painel</a><span class="section-kicker">ÁREA DE ABASTECIMENTO</span></div>
     <header class="admin-header"><h1>Atualizar os dados mensais</h1><p>Envie o demonstrativo em PDF. Revise os meses reconhecidos, corrija o que faltar e publique somente depois de conferir os valores no documento original.</p></header>
     <p id="demo-banner" class="admin-alert" hidden>Ambiente de demonstração: esta publicação altera somente uma cópia de teste dos dados.</p>
+    <div class="admin-tabs" role="tablist" aria-label="Área de abastecimento">
+      <button id="admin-tab-update" class="admin-tab active" type="button" role="tab" aria-selected="true" aria-controls="admin-update-panel">Atualizar dados</button>
+      <button id="admin-tab-guide" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-guide-panel" tabindex="-1">Como atualizar <span>Primeira vez?</span></button>
+    </div>
+    <div id="admin-update-panel" class="admin-tab-panel" role="tabpanel" aria-labelledby="admin-tab-update">
     <section class="admin-step" aria-labelledby="upload-title"><h2 id="upload-title">1. Enviar demonstrativo</h2><p>A leitura automática funciona para PDFs com texto selecionável e linhas mensais. Em PDFs digitalizados, use “Adicionar mês manualmente”.</p>
       <form id="upload-form" class="admin-form-grid">
         <label class="field">Recurso<select id="admin-resource" name="resource"><option value="water">Água</option><option value="energy">Energia</option></select></label>
@@ -29,6 +34,18 @@
       <p id="review-message" class="admin-alert" role="status" hidden></p>
     </section>
     <p class="admin-footer-note">O PDF enviado fica guardado na área privada do servidor para auditoria. Um comprovante só aparece no painel público quando seu link e a aprovação para divulgação forem informados.</p>
+    </div>
+    <section id="admin-guide-panel" class="admin-tab-panel admin-guide" role="tabpanel" aria-labelledby="admin-tab-guide" hidden>
+      <div class="admin-guide-head"><span class="section-kicker">GUIA RÁPIDO</span><h2>Seu primeiro envio, passo a passo</h2><p>Tenha o demonstrativo mensal da EMPETUR em PDF à mão. O painel só publica os valores depois da sua conferência.</p></div>
+      <ol class="admin-guide-list">
+        <li><span class="guide-number" aria-hidden="true">1</span><strong>Envie o documento</strong><p>Na aba “Atualizar dados”, escolha Água ou Energia, selecione o PDF (até 4 MB) e clique em “Ler PDF”. Se o arquivo for uma imagem digitalizada, use “Adicionar mês manualmente”.</p></li>
+        <li><span class="guide-number" aria-hidden="true">2</span><strong>Confira e corrija</strong><p>Compare cada competência, consumo e total faturado com o PDF. Edite qualquer campo que a leitura não reconheceu. Zero registrado é diferente de campo vazio: marque “não informado no PDF” somente após conferir a fonte.</p></li>
+        <li><span class="guide-number" aria-hidden="true">3</span><strong>Informe a origem</strong><p>Adicione o link da planilha publicada, quando existir. Informe um comprovante apenas se houver arquivo e aprovação para divulgação pública.</p></li>
+        <li><span class="guide-number" aria-hidden="true">4</span><strong>Publique e confira</strong><p>Clique em “Publicar meses revisados” e abra o painel para verificar os números. Se reenviar a mesma competência, o novo registro substitui o anterior e a versão antiga fica guardada para auditoria.</p></li>
+      </ol>
+      <div class="admin-guide-callout"><strong>Exemplo de Energia</strong><p>O demonstrativo de 2022 informa os valores faturados, mas deixa kWh em branco. Nesse caso, confirme a ausência de kWh; não preencha com zero ou estimativa.</p></div>
+      <button id="start-update" class="primary-button" type="button">Começar atualização →</button>
+    </section>
   </main>
 </body>
 </html>

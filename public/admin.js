@@ -4,6 +4,28 @@ let importId = '';
 let localPdfUrl = '';
 let publishedKeys = new Set();
 
+function showAdminTab(name) {
+  for (const item of ['update', 'guide']) {
+    const selected = item === name;
+    const tab = $(`admin-tab-${item}`);
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    tab.classList.toggle('active', selected);
+    $(`admin-${item}-panel`).hidden = !selected;
+  }
+  $(`admin-tab-${name}`).focus();
+}
+
+for (const name of ['update', 'guide']) {
+  $(`admin-tab-${name}`).addEventListener('click', () => showAdminTab(name));
+  $(`admin-tab-${name}`).addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    showAdminTab(event.key === 'ArrowLeft' || event.key === 'Home' ? 'update' : 'guide');
+  });
+}
+$('start-update').addEventListener('click', () => showAdminTab('update'));
+
 function notice(id, message, kind = '') {
   const box = $(id);
   box.hidden = !message;
@@ -164,7 +186,7 @@ $('upload-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const file = $('document').files[0];
   if (!file) return notice('upload-message', 'Selecione um PDF para leitura.', 'error');
-  if (file.size > 10 * 1024 * 1024) return notice('upload-message', 'O PDF deve ter no máximo 10 MB.', 'error');
+  if (file.size > 4 * 1024 * 1024) return notice('upload-message', 'O PDF deve ter no máximo 4 MB.', 'error');
   notice('upload-message', 'Lendo o documento…');
   const body = new FormData();
   body.append('resource', $('admin-resource').value);
