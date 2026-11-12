@@ -31,3 +31,5 @@
 .admin-guide-callout strong{font-size:13px;color:#684c12}
 .admin-guide-callout p{font-size:12px;color:#765d29;line-height:1.55;margin:6px 0 0}
 @media(max-width:650px){.admin-tabs{display:grid;grid-template-columns:1fr 1fr;width:100%}.admin-tab{padding:10px 7px;font-size:12px}.admin-tab span{display:none}.admin-guide{padding:20px}.admin-guide-list{grid-template-columns:1fr}.admin-guide-list li{min-height:0}}
+.admin-login .section-kicker{display:block;margin-bottom:12px}.admin-login-form{display:grid;grid-template-columns:1fr 1fr auto;gap:13px;align-items:end;max-width:760px;margin-top:22px}.admin-session{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:18px 0 0;padding:12px 16px;border-radius:10px;background:#e3f5ea;color:#236b3f;font-size:12px;font-weight:800}.admin-session .text-button{color:#236b3f}.admin-login[hidden],.admin-workflow[hidden]{display:none}@media(max-width:650px){.admin-login-form{grid-template-columns:1fr}.admin-login-form .primary-button{width:100%}}
+
