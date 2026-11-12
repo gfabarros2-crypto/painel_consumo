@@ -3,6 +3,50 @@ let rows = [];
 let importId = '';
 let localPdfUrl = '';
 let publishedKeys = new Set();
+let authHeader = '';
+
+function adminFetch(url, options = {}) {
+  return fetch(url, { ...options, headers: { ...options.headers, Authorization: authHeader } });
+}
+
+function setAuthenticated(allowed) {
+  $('admin-login').hidden = allowed;
+  $('admin-workflow').hidden = !allowed;
+}
+
+$('login-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const user = $('login-user').value.trim();
+  const password = $('login-password').value;
+  if (user.includes(':')) return notice('login-message', 'O usuário não pode conter dois-pontos.', 'error');
+  const bytes = new TextEncoder().encode(`${user}:${password}`);
+  authHeader = `Basic ${btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))}`;
+  notice('login-message', 'Verificando acesso…');
+  try {
+    const response = await adminFetch('api/admin/records', { cache: 'no-store' });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || (response.status === 401 ? 'Usuário ou senha incorretos.' : 'Não foi possível entrar.'));
+    }
+    const payload = await response.json();
+    publishedKeys = new Set((payload.records || []).map((row) => `${row.resource}:${row.period}`));
+    $('login-form').reset();
+    notice('login-message', '');
+    setAuthenticated(true);
+    $('admin-resource').focus();
+  } catch (error) {
+    authHeader = '';
+    notice('login-message', error.message, 'error');
+  }
+});
+
+$('logout').addEventListener('click', () => {
+  authHeader = '';
+  rows = [];
+  importId = '';
+  setAuthenticated(false);
+  $('login-user').focus();
+});
 
 function showAdminTab(name) {
   for (const item of ['update', 'guide']) {
@@ -35,7 +79,7 @@ function notice(id, message, kind = '') {
 
 async function loadPublished() {
   try {
-    const response = await fetch('api/admin/records', { cache: 'no-store' });
+    const response = await adminFetch('api/admin/records', { cache: 'no-store' });
     if (!response.ok) return;
     const payload = await response.json();
     if (payload.demo) $('demo-banner').hidden = false;
@@ -192,7 +236,7 @@ $('upload-form').addEventListener('submit', async (event) => {
   body.append('resource', $('admin-resource').value);
   body.append('document', file);
   try {
-    const response = await fetch('api/admin/preview', { method: 'POST', headers: { 'X-Requested-With': 'EmpeturPainel' }, body });
+    const response = await adminFetch('api/admin/preview', { method: 'POST', headers: { 'X-Requested-With': 'EmpeturPainel' }, body });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Falha na leitura do PDF.');
     importId = result.import_id;
@@ -224,7 +268,7 @@ $('publish').addEventListener('click', async () => {
     const reviewed = collectRows();
     if (!reviewed.length) throw new Error('Inclua pelo menos um mês.');
     notice('review-message', 'Publicando os meses revisados…');
-    const response = await fetch('api/admin/commit', {
+    const response = await adminFetch('api/admin/commit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'EmpeturPainel' },
       body: JSON.stringify({ import_id: importId, rows: reviewed }),
@@ -244,4 +288,4 @@ $('publish').addEventListener('click', async () => {
 });
 
 $('add-another').addEventListener('click', () => { $('publish').disabled = false; });
-loadPublished();
+
