@@ -18,6 +18,19 @@
       <button id="admin-tab-guide" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-guide-panel" tabindex="-1">Como atualizar <span>Primeira vez?</span></button>
     </div>
     <div id="admin-update-panel" class="admin-tab-panel" role="tabpanel" aria-labelledby="admin-tab-update">
+    <section id="admin-login" class="admin-step admin-login" aria-labelledby="login-title">
+      <span class="section-kicker">ACESSO RESTRITO</span>
+      <h2 id="login-title">Entrar para atualizar</h2>
+      <p>Use o usuário e a senha de abastecimento cadastrados pela EMPETUR. A senha fica apenas nesta sessão do navegador.</p>
+      <form id="login-form" class="admin-login-form">
+        <label class="field">Usuário<input id="login-user" type="text" autocomplete="username" required></label>
+        <label class="field">Senha<input id="login-password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">Entrar</button>
+      </form>
+      <p id="login-message" class="admin-alert" role="status" hidden></p>
+    </section>
+    <div id="admin-workflow" hidden>
+    <div class="admin-session"><span>Acesso de edição liberado</span><button id="logout" class="text-button" type="button">Sair</button></div>
     <section class="admin-step" aria-labelledby="upload-title"><h2 id="upload-title">1. Enviar demonstrativo</h2><p>A leitura automática funciona para PDFs com texto selecionável e linhas mensais. Em PDFs digitalizados, use “Adicionar mês manualmente”.</p>
       <form id="upload-form" class="admin-form-grid">
         <label class="field">Recurso<select id="admin-resource" name="resource"><option value="water">Água</option><option value="energy">Energia</option></select></label>
@@ -35,6 +48,7 @@
     </section>
     <p class="admin-footer-note">O PDF enviado fica guardado na área privada do servidor para auditoria. Um comprovante só aparece no painel público quando seu link e a aprovação para divulgação forem informados.</p>
     </div>
+    </div>
     <section id="admin-guide-panel" class="admin-tab-panel admin-guide" role="tabpanel" aria-labelledby="admin-tab-guide" hidden>
       <div class="admin-guide-head"><span class="section-kicker">GUIA RÁPIDO</span><h2>Seu primeiro envio, passo a passo</h2><p>Tenha o demonstrativo mensal da EMPETUR em PDF à mão. O painel só publica os valores depois da sua conferência.</p></div>
       <ol class="admin-guide-list">
@@ -49,3 +63,4 @@
   </main>
 </body>
 </html>
+
