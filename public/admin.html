@@ -15,6 +15,7 @@
     <p id="demo-banner" class="admin-alert" hidden>Ambiente de demonstração: esta publicação altera somente uma cópia de teste dos dados.</p>
     <div class="admin-tabs" role="tablist" aria-label="Área de abastecimento">
       <button id="admin-tab-update" class="admin-tab active" type="button" role="tab" aria-selected="true" aria-controls="admin-update-panel">Atualizar dados</button>
+      <button id="admin-tab-history" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-history-panel" tabindex="-1">Histórico <span id="history-count" hidden></span></button>
       <button id="admin-tab-guide" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="admin-guide-panel" tabindex="-1">Como atualizar <span>Primeira vez?</span></button>
     </div>
     <div id="admin-update-panel" class="admin-tab-panel" role="tabpanel" aria-labelledby="admin-tab-update">
@@ -46,10 +47,15 @@
       <div class="admin-actions"><button id="publish" class="primary-button" type="button">Publicar meses revisados</button><button id="add-another" class="secondary-button" type="button">+ Adicionar outro mês</button><button id="confirm-missing" class="secondary-button" type="button">Confirmar campos vazios após conferência</button></div>
       <p id="review-message" class="admin-alert" role="status" hidden></p>
     </section>
-    <section class="admin-step" aria-labelledby="activity-title"><h2 id="activity-title">Histórico de publicações</h2><p>Nome informado, data e competências publicadas. Este histórico aparece apenas para quem entrou na área de abastecimento.</p><div id="activity-list" class="activity-list" aria-live="polite"></div></section>
     <p class="admin-footer-note">O PDF enviado fica guardado na área privada do servidor para auditoria. Um comprovante só aparece no painel público quando seu link e a aprovação para divulgação forem informados.</p>
     </div>
     </div>
+    <section id="admin-history-panel" class="admin-tab-panel admin-step admin-history" role="tabpanel" aria-labelledby="admin-tab-history" hidden>
+      <span class="section-kicker">CONTROLE DE ATUALIZAÇÕES</span>
+      <h2>Histórico de publicações</h2>
+      <div id="history-locked"><p>Entre com seu nome e a senha na aba “Atualizar dados” para consultar quem publicou cada atualização.</p><button id="go-to-login" class="secondary-button" type="button">Ir para o login →</button></div>
+      <div id="history-content" hidden><p>Veja o nome informado, a data e as competências incluídas ou corrigidas. As publicações anteriores à ativação deste registro não têm autor identificado.</p><button id="refresh-history" class="secondary-button" type="button">Atualizar histórico</button><p id="history-message" class="admin-alert" role="status" hidden></p><div id="activity-list" class="activity-list" aria-live="polite"></div></div>
+    </section>
     <section id="admin-guide-panel" class="admin-tab-panel admin-guide" role="tabpanel" aria-labelledby="admin-tab-guide" hidden>
       <div class="admin-guide-head"><span class="section-kicker">GUIA RÁPIDO</span><h2>Seu primeiro envio, passo a passo</h2><p>Tenha o demonstrativo mensal da EMPETUR em PDF à mão. O painel só publica os valores depois da sua conferência.</p></div>
       <ol class="admin-guide-list">

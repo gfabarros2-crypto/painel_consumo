@@ -4,10 +4,13 @@ let importId = '';
 let localPdfUrl = '';
 let publishedKeys = new Set();
 let authHeader = '';
+const adminTabs = ['update', 'history', 'guide'];
 
 function renderActivity(log = []) {
   const container = $('activity-list');
   container.replaceChildren();
+  $('history-count').textContent = String(log.length);
+  $('history-count').hidden = !authHeader;
   if (!log.length) {
     const message = document.createElement('p');
     message.textContent = 'Ainda não há publicações registradas com nome. As próximas aparecerão aqui.';
@@ -37,6 +40,8 @@ function adminFetch(url, options = {}) {
 function setAuthenticated(allowed) {
   $('admin-login').hidden = allowed;
   $('admin-workflow').hidden = !allowed;
+  $('history-locked').hidden = allowed;
+  $('history-content').hidden = !allowed;
 }
 
 $('login-form').addEventListener('submit', async (event) => {
@@ -70,6 +75,7 @@ $('login-form').addEventListener('submit', async (event) => {
 $('logout').addEventListener('click', () => {
   authHeader = '';
   $('admin-user-name').textContent = '';
+  renderActivity([]);
   rows = [];
   importId = '';
   setAuthenticated(false);
@@ -77,7 +83,7 @@ $('logout').addEventListener('click', () => {
 });
 
 function showAdminTab(name) {
-  for (const item of ['update', 'guide']) {
+  for (const item of adminTabs) {
     const selected = item === name;
     const tab = $(`admin-tab-${item}`);
     tab.setAttribute('aria-selected', String(selected));
@@ -88,15 +94,23 @@ function showAdminTab(name) {
   $(`admin-tab-${name}`).focus();
 }
 
-for (const name of ['update', 'guide']) {
+for (const name of adminTabs) {
   $(`admin-tab-${name}`).addEventListener('click', () => showAdminTab(name));
   $(`admin-tab-${name}`).addEventListener('keydown', (event) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    showAdminTab(event.key === 'ArrowLeft' || event.key === 'Home' ? 'update' : 'guide');
+    const current = adminTabs.indexOf(name);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? adminTabs.length - 1 : (current + (event.key === 'ArrowLeft' ? -1 : 1) + adminTabs.length) % adminTabs.length;
+    showAdminTab(adminTabs[next]);
   });
 }
 $('start-update').addEventListener('click', () => showAdminTab('update'));
+$('go-to-login').addEventListener('click', () => { showAdminTab('update'); $('login-user').focus(); });
+$('refresh-history').addEventListener('click', async () => {
+  notice('history-message', 'Atualizando histórico…');
+  const loaded = await loadPublished();
+  notice('history-message', loaded ? 'Histórico atualizado.' : 'Não foi possível atualizar o histórico.', loaded ? 'success' : 'error');
+});
 
 function notice(id, message, kind = '') {
   const box = $(id);
@@ -108,12 +122,13 @@ function notice(id, message, kind = '') {
 async function loadPublished() {
   try {
     const response = await adminFetch('api/admin/records', { cache: 'no-store' });
-    if (!response.ok) return;
+    if (!response.ok) return false;
     const payload = await response.json();
     if (payload.demo) $('demo-banner').hidden = false;
     publishedKeys = new Set((payload.records || []).map((row) => `${row.resource}:${row.period}`));
     renderActivity(payload.audit_log);
-  } catch { /* A revisão ainda funciona sem a prévia de duplicidade. */ }
+    return true;
+  } catch { return false; }
 }
 
 function rawNumber(value) {
