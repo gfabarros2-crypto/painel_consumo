@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hmac
 import json
 import os
@@ -120,7 +121,7 @@ def admin_name_from_header(header: str, password: str) -> str | None:
         return None
     try:
         decoded = base64.b64decode(token, validate=True).decode("utf-8")
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, binascii.Error):
         return None
     name, separator, supplied_password = decoded.partition(":")
     name = name.strip()

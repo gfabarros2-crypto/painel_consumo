@@ -16,7 +16,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from domain import analyze, classify, normalize_record, public_record, shift_month  # noqa: E402
+from domain import analyze, classify, normalize_record, shift_month  # noqa: E402
 from extractor import parse_pdf, parse_row_line  # noqa: E402
 import server  # noqa: E402
 
@@ -153,6 +153,7 @@ class AdminAuditTests(unittest.TestCase):
         self.assertIsNone(server.admin_name_from_header(basic("Maria", "wrong"), "shared"))
         self.assertIsNone(server.admin_name_from_header(basic(" ", "shared"), "shared"))
         self.assertIsNone(server.admin_name_from_header(basic("X" * 81, "shared"), "shared"))
+        self.assertIsNone(server.admin_name_from_header("Basic !!!!", "shared"))
 
     def test_login_commit_and_private_history(self):
         with tempfile.TemporaryDirectory() as temporary:
