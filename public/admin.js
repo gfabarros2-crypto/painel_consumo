@@ -5,6 +5,31 @@ let localPdfUrl = '';
 let publishedKeys = new Set();
 let authHeader = '';
 
+function renderActivity(log = []) {
+  const container = $('activity-list');
+  container.replaceChildren();
+  if (!log.length) {
+    const message = document.createElement('p');
+    message.textContent = 'Ainda não há publicações registradas com nome. As próximas aparecerão aqui.';
+    container.append(message);
+    return;
+  }
+  const list = document.createElement('ol');
+  for (const item of [...log].reverse()) {
+    const row = document.createElement('li');
+    const heading = document.createElement('strong');
+    heading.textContent = item.user;
+    const when = document.createElement('time');
+    when.dateTime = item.at;
+    when.textContent = new Date(item.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const changes = document.createElement('span');
+    changes.textContent = (item.changes || []).map((change) => `${change.resource === 'water' ? 'Água' : 'Energia'} ${change.period}${change.action === 'replaced' ? ' (corrigido)' : ''}`).join(' · ');
+    row.append(heading, when, changes);
+    list.append(row);
+  }
+  container.append(list);
+}
+
 function adminFetch(url, options = {}) {
   return fetch(url, { ...options, headers: { ...options.headers, Authorization: authHeader } });
 }
@@ -18,7 +43,7 @@ $('login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const user = $('login-user').value.trim();
   const password = $('login-password').value;
-  if (user.includes(':')) return notice('login-message', 'O usuário não pode conter dois-pontos.', 'error');
+  if (!user || user.length > 80 || user.includes(':')) return notice('login-message', 'Informe seu nome, com até 80 caracteres e sem dois-pontos.', 'error');
   const bytes = new TextEncoder().encode(`${user}:${password}`);
   authHeader = `Basic ${btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))}`;
   notice('login-message', 'Verificando acesso…');
@@ -30,6 +55,8 @@ $('login-form').addEventListener('submit', async (event) => {
     }
     const payload = await response.json();
     publishedKeys = new Set((payload.records || []).map((row) => `${row.resource}:${row.period}`));
+    $('admin-user-name').textContent = user;
+    renderActivity(payload.audit_log);
     $('login-form').reset();
     notice('login-message', '');
     setAuthenticated(true);
@@ -42,6 +69,7 @@ $('login-form').addEventListener('submit', async (event) => {
 
 $('logout').addEventListener('click', () => {
   authHeader = '';
+  $('admin-user-name').textContent = '';
   rows = [];
   importId = '';
   setAuthenticated(false);
@@ -84,6 +112,7 @@ async function loadPublished() {
     const payload = await response.json();
     if (payload.demo) $('demo-banner').hidden = false;
     publishedKeys = new Set((payload.records || []).map((row) => `${row.resource}:${row.period}`));
+    renderActivity(payload.audit_log);
   } catch { /* A revisão ainda funciona sem a prévia de duplicidade. */ }
 }
 
@@ -288,4 +317,3 @@ $('publish').addEventListener('click', async () => {
 });
 
 $('add-another').addEventListener('click', () => { $('publish').disabled = false; });
-

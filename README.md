@@ -6,7 +6,7 @@ Módulo independente para incorporar ao portal, com arquivos estáticos e funç�
 
 1. Crie um repositório próprio para este painel e envie **o conteúdo desta pasta como raiz do repositório**. A Vercel deve importar esse repositório com `Root Directory` na raiz e sem `Build Command` personalizado. `public/` contém a página e `api/` contém as funções.
 2. Na Vercel, crie um **Blob privado** no projeto e vincule-o aos ambientes desejados. Isso disponibiliza `BLOB_READ_WRITE_TOKEN` às funções. Sem ele, o painel lê a base inicial empacotada, mas bloqueia novos uploads/publicações para evitar perda de dados.
-3. Configure `EMPETUR_ADMIN_USER` e `EMPETUR_ADMIN_PASSWORD` como variáveis de ambiente de produção, com o valor da senha no tipo **Secret**. Use HTTPS (fornecido pela Vercel). Acesse `/admin.html`, entre com essas credenciais para abastecer e use a raiz `/` para consultar.
+3. Configure `EMPETUR_ADMIN_PASSWORD` como variável de ambiente de produção, com o valor no tipo **Secret**. O nome é digitado por cada pessoa no formulário; `EMPETUR_ADMIN_USER` não é mais consultada e pode ser removida da Vercel. Use HTTPS (fornecido pela Vercel). Acesse `/admin`, informe seu nome e a senha para abastecer; use a raiz `/` para consultar.
 4. Publique o projeto. Após o primeiro upload, os PDFs recebidos, a base mensal e as revisões são gravados no Blob privado; novos deploys do GitHub não apagam esses dados. A primeira leitura usa `data/records.json` apenas quando o Blob ainda está vazio.
 
 Não grave credenciais nem token Blob no GitHub. O código não publica automaticamente os PDFs recebidos; um comprovante aparece apenas com link e aprovação explícita.
@@ -24,20 +24,21 @@ Requer Python 3.11+ e `pip`. No PowerShell, dentro desta pasta:
 
 ```powershell
 python -m pip install -r requirements.txt
-$env:EMPETUR_ADMIN_USER = "seu-usuario"
 $env:EMPETUR_ADMIN_PASSWORD = "sua-senha-forte"
 python server.py
 ```
 
-Abra `http://127.0.0.1:8765/` para o painel e `http://127.0.0.1:8765/admin.html` para o abastecimento. A área administrativa é desativada quando usuário ou senha não estão configurados. O endereço e a porta podem ser definidos com `EMPETUR_HOST` e `EMPETUR_PORT`.
+Abra `http://127.0.0.1:8765/` para o painel e `http://127.0.0.1:8765/admin` para o abastecimento. A área administrativa é desativada quando a senha não está configurada. O endereço e a porta podem ser definidos com `EMPETUR_HOST` e `EMPETUR_PORT`.
 
 ## Atualizar todo mês
 
-1. Acesse `/admin.html`. Para o primeiro uso, abra a aba **Como atualizar**; depois volte a **Atualizar dados**, entre com o usuário e a senha definidos na Vercel e escolha **Água** ou **Energia**. O formulário mantém a autenticação apenas na memória da página; ao recarregar ou clicar em **Sair**, entre novamente.
+1. Acesse `/admin`. Para o primeiro uso, abra a aba **Como atualizar**; depois volte a **Atualizar dados**, informe seu nome e a senha compartilhada definida na Vercel e escolha **Água** ou **Energia**. O formulário mantém a autenticação apenas na memória da página; ao recarregar ou clicar em **Sair**, entre novamente.
 2. Envie o PDF recebido (até 4 MB). O sistema extrai linhas mensais com texto selecionável e mostra uma prévia. Se o arquivo for digitalizado, use **Adicionar mês manualmente**.
 3. Compare cada linha com o PDF. Corrija competência, consumo e valor total; preencha água e esgoto apenas quando discriminados. Se um campo estiver realmente vazio na fonte, confirme essa ausência na linha ou use **Confirmar campos vazios após conferência** depois de revisar o documento. O link da publicação oficial pode ser aplicado a todos os meses do arquivo.
 4. Se houver um comprovante **aprovado para divulgação**, informe sua URL HTTPS e marque a aprovação. Sem os dois dados, o link não aparece no painel público.
-5. Clique em **Publicar meses revisados**. Uma competência já existente é substituída; o estado anterior e o PDF enviado ficam guardados para auditoria em `data/` localmente ou no Blob privado da Vercel.
+5. Clique em **Publicar meses revisados**. Uma competência já existente é substituída; o estado anterior e o PDF enviado ficam guardados para auditoria em `data/` localmente ou no Blob privado da Vercel. O nome informado, a data e as competências ficam no **Histórico de publicações** da área administrativa e nos metadados privados da base.
+
+O nome é uma identificação declarada: com uma senha compartilhada, o sistema não consegue comprovar quem a digitou. Publicações anteriores a esta mudança não recebem um autor retroativo. O histórico de publicações e os nomes não são expostos pela API pública.
 
 No servidor local, o JSON normalizado fica em `data/records.json`. Na Vercel, fica no Blob privado em `empetur-consumo/records.json`. Para implantações locais com armazenamento em volume separado, configure `EMPETUR_DATA_DIR`. O arquivo `data/modelo-registro.json` mostra o esquema para cargas automatizadas. Não edite a interface para adicionar meses.
 
@@ -73,4 +74,3 @@ node --check public/admin.js
 ```
 
 Os testes cobrem virada de ano, histórico incompleto, zero registrado, ausência de kWh, limites legais, comprovante ausente e extração dos PDFs de água e energia. A API de prévia, revisão/publicação e consulta pública também foi exercitada com uma cópia isolada da base. O layout e as abas foram verificados em desktop e largura móvel.
-

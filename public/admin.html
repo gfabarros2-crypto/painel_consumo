@@ -21,16 +21,16 @@
     <section id="admin-login" class="admin-step admin-login" aria-labelledby="login-title">
       <span class="section-kicker">ACESSO RESTRITO</span>
       <h2 id="login-title">Entrar para atualizar</h2>
-      <p>Use o usuário e a senha de abastecimento cadastrados pela EMPETUR. A senha fica apenas nesta sessão do navegador.</p>
+      <p>Informe seu nome para identificar quem faz a atualização e digite a senha de abastecimento da EMPETUR. Cada publicação ficará registrada com esse nome.</p>
       <form id="login-form" class="admin-login-form">
-        <label class="field">Usuário<input id="login-user" type="text" autocomplete="username" required></label>
+        <label class="field">Seu nome<input id="login-user" type="text" autocomplete="name" maxlength="80" required placeholder="Nome de quem vai atualizar"></label>
         <label class="field">Senha<input id="login-password" type="password" autocomplete="current-password" required></label>
         <button class="primary-button" type="submit">Entrar</button>
       </form>
       <p id="login-message" class="admin-alert" role="status" hidden></p>
     </section>
     <div id="admin-workflow" hidden>
-    <div class="admin-session"><span>Acesso de edição liberado</span><button id="logout" class="text-button" type="button">Sair</button></div>
+    <div class="admin-session"><span>Acesso de edição liberado para <strong id="admin-user-name"></strong></span><button id="logout" class="text-button" type="button">Sair</button></div>
     <section class="admin-step" aria-labelledby="upload-title"><h2 id="upload-title">1. Enviar demonstrativo</h2><p>A leitura automática funciona para PDFs com texto selecionável e linhas mensais. Em PDFs digitalizados, use “Adicionar mês manualmente”.</p>
       <form id="upload-form" class="admin-form-grid">
         <label class="field">Recurso<select id="admin-resource" name="resource"><option value="water">Água</option><option value="energy">Energia</option></select></label>
@@ -46,6 +46,7 @@
       <div class="admin-actions"><button id="publish" class="primary-button" type="button">Publicar meses revisados</button><button id="add-another" class="secondary-button" type="button">+ Adicionar outro mês</button><button id="confirm-missing" class="secondary-button" type="button">Confirmar campos vazios após conferência</button></div>
       <p id="review-message" class="admin-alert" role="status" hidden></p>
     </section>
+    <section class="admin-step" aria-labelledby="activity-title"><h2 id="activity-title">Histórico de publicações</h2><p>Nome informado, data e competências publicadas. Este histórico aparece apenas para quem entrou na área de abastecimento.</p><div id="activity-list" class="activity-list" aria-live="polite"></div></section>
     <p class="admin-footer-note">O PDF enviado fica guardado na área privada do servidor para auditoria. Um comprovante só aparece no painel público quando seu link e a aprovação para divulgação forem informados.</p>
     </div>
     </div>
@@ -55,7 +56,7 @@
         <li><span class="guide-number" aria-hidden="true">1</span><strong>Envie o documento</strong><p>Na aba “Atualizar dados”, escolha Água ou Energia, selecione o PDF (até 4 MB) e clique em “Ler PDF”. Se o arquivo for uma imagem digitalizada, use “Adicionar mês manualmente”.</p></li>
         <li><span class="guide-number" aria-hidden="true">2</span><strong>Confira e corrija</strong><p>Compare cada competência, consumo e total faturado com o PDF. Edite qualquer campo que a leitura não reconheceu. Zero registrado é diferente de campo vazio: marque “não informado no PDF” somente após conferir a fonte.</p></li>
         <li><span class="guide-number" aria-hidden="true">3</span><strong>Informe a origem</strong><p>Adicione o link da planilha publicada, quando existir. Informe um comprovante apenas se houver arquivo e aprovação para divulgação pública.</p></li>
-        <li><span class="guide-number" aria-hidden="true">4</span><strong>Publique e confira</strong><p>Clique em “Publicar meses revisados” e abra o painel para verificar os números. Se reenviar a mesma competência, o novo registro substitui o anterior e a versão antiga fica guardada para auditoria.</p></li>
+        <li><span class="guide-number" aria-hidden="true">4</span><strong>Publique e confira</strong><p>Entre com seu nome e a senha compartilhada, clique em “Publicar meses revisados” e confira o painel. O histórico registra o nome informado; ao reenviar uma competência, a versão antiga fica guardada para auditoria.</p></li>
       </ol>
       <div class="admin-guide-callout"><strong>Exemplo de Energia</strong><p>O demonstrativo de 2022 informa os valores faturados, mas deixa kWh em branco. Nesse caso, confirme a ausência de kWh; não preencha com zero ou estimativa.</p></div>
       <button id="start-update" class="primary-button" type="button">Começar atualização →</button>
@@ -63,4 +64,3 @@
   </main>
 </body>
 </html>
-

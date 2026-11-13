@@ -1,14 +1,22 @@
 import sys
 import unittest
+import base64
+import json
+import os
+import tempfile
+import threading
 from decimal import Decimal
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from domain import analyze, classify, normalize_record, shift_month  # noqa: E402
+from domain import analyze, classify, normalize_record, public_record, shift_month  # noqa: E402
 from extractor import parse_pdf, parse_row_line  # noqa: E402
 import server  # noqa: E402
 
@@ -133,6 +141,59 @@ class StorageTests(unittest.TestCase):
             server.save_import("a" * 32, b"%PDF-test")
             self.assertTrue(server.import_exists("a" * 32))
             self.assertTrue(any(key.endswith(".pdf") for key in blob.objects))
+
+
+class AdminAuditTests(unittest.TestCase):
+    def test_name_is_declared_and_password_is_only_fixed_credential(self):
+        def basic(name, password):
+            return "Basic " + base64.b64encode(f"{name}:{password}".encode()).decode()
+
+        self.assertEqual(server.admin_name_from_header(basic("Maria Silva", "shared"), "shared"), "Maria Silva")
+        self.assertEqual(server.admin_name_from_header(basic("aeci", "shared"), "shared"), "aeci")
+        self.assertIsNone(server.admin_name_from_header(basic("Maria", "wrong"), "shared"))
+        self.assertIsNone(server.admin_name_from_header(basic(" ", "shared"), "shared"))
+        self.assertIsNone(server.admin_name_from_header(basic("X" * 81, "shared"), "shared"))
+
+    def test_login_commit_and_private_history(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            environment = patch.dict(os.environ, {"EMPETUR_ADMIN_PASSWORD": "shared", "EMPETUR_ADMIN_USER": "aeci"})
+            with environment, patch.object(server, "DATA", directory), patch.object(server, "RECORDS_FILE", directory / "records.json"), patch.object(server, "REVISIONS", directory / "revisions"), patch.object(server, "blob_client", return_value=None), patch.object(server.Handler, "log_message"):
+                httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+                thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+                thread.start()
+                base = f"http://127.0.0.1:{httpd.server_port}"
+
+                def request(path, name="Maria Silva", password="shared", payload=None):
+                    authorization = "Basic " + base64.b64encode(f"{name}:{password}".encode()).decode()
+                    headers = {"Authorization": authorization}
+                    body = None
+                    if payload is not None:
+                        body = json.dumps(payload).encode()
+                        headers.update({"Content-Type": "application/json", "X-Requested-With": "EmpeturPainel"})
+                    with urlopen(Request(base + path, data=body, headers=headers), timeout=5) as response:
+                        return response.status, response.read()
+
+                try:
+                    self.assertEqual(request("/admin")[0], 200)
+                    self.assertEqual(request("/api/admin/records")[0], 200)
+                    with self.assertRaises(HTTPError) as error:
+                        request("/api/admin/records", password="wrong")
+                    self.assertEqual(error.exception.code, 401)
+                    row = {"resource": "water", "period": "2026-10", "consumption": 10, "total_brl": 20}
+                    self.assertEqual(json.loads(request("/api/admin/commit", payload={"rows": [row]})[1])["saved"], 1)
+                    self.assertEqual(json.loads(request("/api/admin/commit", name="João", payload={"rows": [{**row, "consumption": 12}]})[1])["replaced"], 1)
+                    data = json.loads(request("/api/admin/records")[1])
+                    self.assertEqual([item["user"] for item in data["audit_log"]], ["Maria Silva", "João"])
+                    self.assertEqual(data["records"][-1]["updated_by"], "João")
+                    self.assertEqual(data["audit_log"][-1]["changes"][0]["action"], "replaced")
+                    public = json.loads(request("/api/records")[1])
+                    self.assertNotIn("audit_log", public)
+                    self.assertNotIn("updated_by", public["records"][-1])
+                finally:
+                    httpd.shutdown()
+                    httpd.server_close()
+                    thread.join(timeout=5)
 
 
 if __name__ == "__main__":

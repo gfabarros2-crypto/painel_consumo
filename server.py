@@ -113,6 +113,45 @@ def parse_multipart(content_type: str, body: bytes) -> dict:
     return result
 
 
+def admin_name_from_header(header: str, password: str) -> str | None:
+    """Valida a senha compartilhada e extrai o nome declarado pelo editor."""
+    scheme, _, token = header.partition(" ")
+    if scheme.lower() != "basic" or not token:
+        return None
+    try:
+        decoded = base64.b64decode(token, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return None
+    name, separator, supplied_password = decoded.partition(":")
+    name = name.strip()
+    if not separator or not name or len(name) > 80 or any(ord(char) < 32 or ord(char) == 127 for char in name):
+        return None
+    return name if hmac.compare_digest(supplied_password, password) else None
+
+
+def apply_publication(data: dict, rows: list[dict], actor: str, import_id: str, timestamp: str) -> tuple[int, int]:
+    """Atualiza competências e guarda quem publicou, inclusive em substituições."""
+    existing = {(r["resource"], r["period"]): r for r in data.get("records", [])}
+    changes = []
+    for row in rows:
+        key = (row["resource"], row["period"])
+        changes.append({"resource": row["resource"], "period": row["period"], "action": "replaced" if key in existing else "created"})
+        updated = {**row, "updated_by": actor, "updated_at": timestamp}
+        if import_id:
+            updated["source_file_id"] = import_id
+        existing[key] = updated
+    data["records"] = sorted(existing.values(), key=lambda r: (r["resource"], r["period"]))
+    data["last_updated"] = timestamp
+    data.setdefault("audit_log", []).append({
+        "id": uuid.uuid4().hex,
+        "at": timestamp,
+        "user": actor,
+        "changes": changes,
+        "source_file_id": import_id or None,
+    })
+    return len(rows), sum(change["action"] == "replaced" for change in changes)
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(PUBLIC), **kwargs)
@@ -132,22 +171,13 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def auth_ok(self) -> bool:
-        user = os.environ.get("EMPETUR_ADMIN_USER")
         password = os.environ.get("EMPETUR_ADMIN_PASSWORD")
-        if not user or not password:
-            self.send_json({"error": "Área de abastecimento desativada: configure usuário e senha."}, HTTPStatus.SERVICE_UNAVAILABLE)
+        if not password:
+            self.send_json({"error": "Área de abastecimento desativada: configure a senha."}, HTTPStatus.SERVICE_UNAVAILABLE)
             return False
-        header = self.headers.get("Authorization", "")
-        try:
-            decoded = base64.b64decode(header.removeprefix("Basic "), validate=True).decode()
-        except (ValueError, UnicodeDecodeError):
-            decoded = ""
-        supplied_user, _, supplied_password = decoded.partition(":")
-        if not (hmac.compare_digest(supplied_user, user) and hmac.compare_digest(supplied_password, password)):
-            self.send_response(HTTPStatus.UNAUTHORIZED)
-            self.send_header("WWW-Authenticate", 'Basic realm="Abastecimento EMPETUR"')
-            self.send_header("Content-Length", "0")
-            self.end_headers()
+        self.admin_user = admin_name_from_header(self.headers.get("Authorization", ""), password)
+        if not self.admin_user:
+            self.send_json({"error": "Nome ou senha inválidos."}, HTTPStatus.UNAUTHORIZED)
             return False
         return True
 
@@ -155,8 +185,6 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         if path in ("/admin", "/admin.html"):
-            if not self.auth_ok():
-                return
             self.path = "/admin.html"
             return super().do_GET()
         if path == "/api/records":
@@ -256,16 +284,9 @@ class Handler(SimpleHTTPRequestHandler):
                     raise ValueError("Há meses repetidos na revisão.")
                 with WRITE_LOCK:
                     data = read_data()
-                    existing = {(r["resource"], r["period"]): r for r in data.get("records", [])}
-                    replaced = sum(key in existing for key in keys)
-                    for row in normalized:
-                        if import_id:
-                            row["source_file_id"] = import_id
-                        existing[(row["resource"], row["period"])] = row
-                    data["records"] = sorted(existing.values(), key=lambda r: (r["resource"], r["period"]))
-                    data["last_updated"] = datetime.now(timezone.utc).isoformat()
+                    saved, replaced = apply_publication(data, normalized, self.admin_user, import_id, datetime.now(timezone.utc).isoformat())
                     save_data(data)
-                return self.send_json({"saved": len(normalized), "replaced": replaced})
+                return self.send_json({"saved": saved, "replaced": replaced})
             return self.send_json({"error": "Rota não encontrada."}, HTTPStatus.NOT_FOUND)
         except (ValueError, json.JSONDecodeError) as exc:
             return self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
@@ -280,4 +301,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("EMPETUR_PORT", "8765"))
     print(f"Painel EMPETUR em http://{host}:{port}/", flush=True)
     ThreadingHTTPServer((host, port), Handler).serve_forever()
-
