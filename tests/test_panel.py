@@ -113,6 +113,10 @@ class ExtractorTests(unittest.TestCase):
         rows = [parse_table_row([f"JAN – 2025", "338320", "R$ 107.752,98"], "energy") for _ in range(11)] + [september]
         self.assertTrue(flag_year_outliers(rows))
         self.assertIn("09/2026", september["period_warning"])
+        mixed = [parse_table_row(["NOV – 2025", "100", "R$ 10,00"], "energy"),
+                 parse_table_row(["DEZ – 2026", "120", "R$ 12,00"], "energy")]
+        self.assertTrue(flag_year_outliers(mixed))
+        self.assertTrue(all(row.get("period_warning") for row in mixed))
 
     def test_official_energy_pdf_preserves_blank_kwh(self):
         pdf = (ROOT / "public" / "planilhas" / "energia-empetur-2022.pdf").read_bytes()

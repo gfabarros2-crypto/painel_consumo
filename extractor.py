@@ -64,21 +64,20 @@ def parse_table_row(cells: list[str | None], resource: str) -> dict | None:
 
 
 def flag_year_outliers(rows: list[dict]) -> bool:
-    """Destaca um ano isolado sem substituir o que está escrito no PDF."""
-    if len(rows) < 6:
-        return False
+    """Destaca anos misturados sem substituir o que está escrito no PDF."""
     years = Counter(row["period"][:4] for row in rows)
-    dominant_year, count = years.most_common(1)[0]
-    if count < len(rows) - 1:
+    if len(years) < 2:
         return False
-    flagged = False
+    dominant_year, count = years.most_common(1)[0]
+    tied = sum(value == count for value in years.values()) > 1
     for row in rows:
-        if row["period"][:4] != dominant_year:
-            row["period_warning"] = f"O PDF informa {row['period'][5:7]}/{row['period'][:4]}, mas os demais meses são de {dominant_year}. Confira o ano antes de publicar."
+        if tied or row["period"][:4] != dominant_year:
+            detail = ("O PDF contém anos diferentes, sem um ano predominante." if tied
+                      else f"A maioria dos meses do PDF é de {dominant_year}.")
+            row["period_warning"] = f"O PDF informa {row['period'][5:7]}/{row['period'][:4]}. {detail} Confira o ano antes de publicar."
             row["period_review_confirmed"] = False
             row["needs_review"] = True
-            flagged = True
-    return flagged
+    return True
 
 
 def parse_row_line(line: str, resource: str) -> dict | None:
@@ -137,7 +136,7 @@ def parse_pdf(pdf_bytes: bytes, resource: str) -> dict:
     if not rows:
         warnings.append("Nenhuma linha mensal reconhecida. Adicione os registros manualmente após conferir o PDF.")
     if flag_year_outliers(rows):
-        warnings.append("Uma competência tem ano diferente dos demais meses do PDF; confira a linha destacada antes de publicar.")
+        warnings.append("O PDF contém competências com anos diferentes; confira as linhas destacadas antes de publicar.")
     if any(row["consumption"] is None or row["total_brl"] is None for row in rows):
         warnings.append("Algumas linhas estão incompletas; corrija os campos destacados antes de publicar.")
     return {"rows": rows, "warnings": warnings}
