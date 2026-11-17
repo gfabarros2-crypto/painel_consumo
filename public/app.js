@@ -111,7 +111,7 @@ function drawResults(data) {
   $('average-note').textContent = data.average === null ? `Histórico sem ${unit()} suficiente` : `${unit()} nos seis meses anteriores`;
   $('variation').textContent = data.variation_percent === null ? '—' : `${data.variation_percent > 0 ? '+' : ''}${percent.format(data.variation_percent)}%`;
   $('variation-note').textContent = data.variation_percent === null ? 'Comparação indisponível' : 'Em relação à média de seis meses';
-  $('status').textContent = data.status.label;
+  $('status-label').textContent = data.status.label;
   $('status').className = `status ${data.status.code}`;
   $('comparison-explanation').hidden = !data.comparison_reason;
   $('comparison-explanation').textContent = data.comparison_reason || '';
