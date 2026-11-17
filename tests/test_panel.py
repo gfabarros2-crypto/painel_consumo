@@ -3,8 +3,10 @@ import unittest
 import base64
 import json
 import os
-import tempfile
+import shutil
 import threading
+import uuid
+from contextlib import contextmanager
 from decimal import Decimal
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -16,8 +18,21 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+
+@contextmanager
+def workspace_temp_directory():
+    root = ROOT / "tmp" / "tests"
+    root.mkdir(parents=True, exist_ok=True)
+    directory = root / uuid.uuid4().hex
+    directory.mkdir()
+    try:
+        yield directory
+    finally:
+        if directory.resolve().is_relative_to(root.resolve()):
+            shutil.rmtree(directory)
+
 from domain import analyze, classify, normalize_record, shift_month  # noqa: E402
-from extractor import parse_pdf, parse_row_line  # noqa: E402
+from extractor import flag_year_outliers, parse_pdf, parse_row_line, parse_table_row  # noqa: E402
 import server  # noqa: E402
 
 
@@ -85,6 +100,20 @@ class DomainTests(unittest.TestCase):
 
 
 class ExtractorTests(unittest.TestCase):
+    def test_new_table_layout_fills_all_invoice_fields(self):
+        january = parse_table_row(["JAN – 2025", "338320", "R$ 107.752,98"], "energy")
+        september = parse_table_row(["SET – 2026\n5", "331581", "R$ 120.976,55"], "energy")
+        self.assertEqual((january["period"], january["consumption"], january["total_brl"]),
+                         ("2025-01", 338320, 107752.98))
+        self.assertEqual((september["period"], september["consumption"], september["total_brl"]),
+                         ("2026-09", 331581, 120976.55))
+        future = parse_table_row(["MAR – 2027", "412.345", "R$ 91.234,56"], "energy")
+        self.assertEqual((future["period"], future["consumption"], future["total_brl"]),
+                         ("2027-03", 412345, 91234.56))
+        rows = [parse_table_row([f"JAN – 2025", "338320", "R$ 107.752,98"], "energy") for _ in range(11)] + [september]
+        self.assertTrue(flag_year_outliers(rows))
+        self.assertIn("09/2026", september["period_warning"])
+
     def test_official_energy_pdf_preserves_blank_kwh(self):
         pdf = (ROOT / "public" / "planilhas" / "energia-empetur-2022.pdf").read_bytes()
         result = parse_pdf(pdf, "energy")
@@ -118,12 +147,14 @@ class StorageTests(unittest.TestCase):
             def __init__(self):
                 self.objects = {}
 
-            def get(self, pathname, *, access):
+            def get_blob(self, pathname, *, access):
                 self.assert_private(access)
                 content = self.objects.get(pathname)
-                return SimpleNamespace(status_code=200, stream=[content]) if content is not None else None
+                if content is None:
+                    raise FileNotFoundError(pathname)
+                return SimpleNamespace(body=content)
 
-            def put(self, pathname, content, *, access, **options):
+            def put_blob(self, pathname, content, *, access, **options):
                 self.assert_private(access)
                 self.objects[pathname] = content
 
@@ -156,8 +187,7 @@ class AdminAuditTests(unittest.TestCase):
         self.assertIsNone(server.admin_name_from_header("Basic !!!!", "shared"))
 
     def test_login_commit_and_private_history(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary)
+        with workspace_temp_directory() as directory:
             environment = patch.dict(os.environ, {"EMPETUR_ADMIN_PASSWORD": "shared", "EMPETUR_ADMIN_USER": "aeci"})
             with environment, patch.object(server, "DATA", directory), patch.object(server, "RECORDS_FILE", directory / "records.json"), patch.object(server, "REVISIONS", directory / "revisions"), patch.object(server, "blob_client", return_value=None), patch.object(server.Handler, "log_message"):
                 httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)

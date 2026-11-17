@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import re
+from collections import Counter
 
 import pdfplumber
 
@@ -12,8 +13,8 @@ MONTHS = {
     "jul": 7, "ago": 8, "set": 9, "out": 10, "nov": 11, "dez": 12,
 }
 ROW = re.compile(
-    r"^\s*(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s*[-/]\s*(\d{2}|20\d{2})\b(.*)$",
-    re.IGNORECASE,
+    r"^\s*(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\.?\s*[-/\u2013\u2014\u2212\ufffd]\s*(20\d{2}|\d{2})\b(.*)$",
+    re.IGNORECASE | re.DOTALL,
 )
 NUMBER = re.compile(r"(?<!\w)\d[\d.,]*")
 MONEY = re.compile(r"R\$\s*([\d.,]+)", re.IGNORECASE)
@@ -24,22 +25,14 @@ def br_number(value: str) -> float:
     return float(cleaned)
 
 
-def parse_row_line(line: str, resource: str) -> dict | None:
-    match = ROW.match(line)
-    if not match:
-        return None
+def period_from_match(match: re.Match) -> str:
     year = int(match[2])
     if year < 100:
         year += 2000
-    period = f"{year:04d}-{MONTHS[match[1].lower()]:02d}"
-    remainder = match[3]
-    amounts = MONEY.findall(remainder)
-    first_money = MONEY.search(remainder)
-    before_money = remainder[: first_money.start()] if first_money else remainder
-    number = NUMBER.search(before_money)
-    consumption = br_number(number.group()) if number else None
-    # Se há água, esgoto, encargos etc. na mesma linha, não presumimos qual é o total.
-    total = br_number(amounts[0]) if len(amounts) == 1 else None
+    return f"{year:04d}-{MONTHS[match[1].lower()]:02d}"
+
+
+def make_row(resource: str, period: str, consumption: float | None, total: float | None) -> dict:
     return {
         "resource": resource,
         "period": period,
@@ -54,12 +47,64 @@ def parse_row_line(line: str, resource: str) -> dict | None:
     }
 
 
+def parse_table_row(cells: list[str | None], resource: str) -> dict | None:
+    """Lê mês, consumo e fatura das colunas, mesmo com linhas visuais distintas."""
+    for index, cell in enumerate(cells):
+        match = ROW.match(cell or "")
+        if not match:
+            continue
+        following = cells[index + 1:]
+        consumption_cell = (following[0] or "") if following else ""
+        numbers = NUMBER.findall(consumption_cell) if "R$" not in consumption_cell.upper() else []
+        consumption = br_number(numbers[0]) if len(numbers) == 1 else None
+        amounts = [amount for value in following for amount in MONEY.findall(value or "")]
+        total = br_number(amounts[0]) if len(amounts) == 1 else None
+        return make_row(resource, period_from_match(match), consumption, total)
+    return None
+
+
+def flag_year_outliers(rows: list[dict]) -> bool:
+    """Destaca um ano isolado sem substituir o que está escrito no PDF."""
+    if len(rows) < 6:
+        return False
+    years = Counter(row["period"][:4] for row in rows)
+    dominant_year, count = years.most_common(1)[0]
+    if count < len(rows) - 1:
+        return False
+    flagged = False
+    for row in rows:
+        if row["period"][:4] != dominant_year:
+            row["period_warning"] = f"O PDF informa {row['period'][5:7]}/{row['period'][:4]}, mas os demais meses são de {dominant_year}. Confira o ano antes de publicar."
+            row["period_review_confirmed"] = False
+            row["needs_review"] = True
+            flagged = True
+    return flagged
+
+
+def parse_row_line(line: str, resource: str) -> dict | None:
+    match = ROW.match(line)
+    if not match:
+        return None
+    period = period_from_match(match)
+    remainder = match[3]
+    amounts = MONEY.findall(remainder)
+    first_money = MONEY.search(remainder)
+    before_money = remainder[: first_money.start()] if first_money else remainder
+    number = NUMBER.search(before_money)
+    consumption = br_number(number.group()) if number else None
+    # Se há água, esgoto, encargos etc. na mesma linha, não presumimos qual é o total.
+    total = br_number(amounts[0]) if len(amounts) == 1 else None
+    return make_row(resource, period, consumption, total)
+
+
 def parse_pdf(pdf_bytes: bytes, resource: str) -> dict:
     if resource not in ("water", "energy"):
         raise ValueError("Selecione Água ou Energia.")
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+            table_rows = [row for page in pdf.pages for table in page.extract_tables()
+                          for cells in table if (row := parse_table_row(cells, resource))]
     except Exception as exc:
         raise ValueError("O arquivo não pôde ser lido como PDF.") from exc
     if not text.strip():
@@ -71,14 +116,28 @@ def parse_pdf(pdf_bytes: bytes, resource: str) -> dict:
         raise ValueError("O documento parece ser de energia; confira o recurso selecionado.")
     if resource == "energy" and ("água" in lower or "�gua" in lower) and "energia" not in lower and "kwh" not in lower:
         raise ValueError("O documento parece ser de água; confira o recurso selecionado.")
-    rows = []
-    for line in text.splitlines():
-        row = parse_row_line(line, resource)
-        if row:
-            rows.append(row)
+    rows = table_rows
+    if not rows:
+        pending = None
+        for line in text.splitlines():
+            if ROW.match(line):
+                if pending:
+                    rows.append(parse_row_line(pending, resource))
+                pending = line
+            elif pending and MONEY.search(line):
+                rows.append(parse_row_line(f"{pending} {line}", resource))
+                pending = None
+            if pending and MONEY.search(pending):
+                rows.append(parse_row_line(pending, resource))
+                pending = None
+        if pending:
+            rows.append(parse_row_line(pending, resource))
+        rows = [row for row in rows if row]
     warnings = []
     if not rows:
         warnings.append("Nenhuma linha mensal reconhecida. Adicione os registros manualmente após conferir o PDF.")
-    if any(row["needs_review"] for row in rows):
+    if flag_year_outliers(rows):
+        warnings.append("Uma competência tem ano diferente dos demais meses do PDF; confira a linha destacada antes de publicar.")
+    if any(row["consumption"] is None or row["total_brl"] is None for row in rows):
         warnings.append("Algumas linhas estão incompletas; corrija os campos destacados antes de publicar.")
     return {"rows": rows, "warnings": warnings}

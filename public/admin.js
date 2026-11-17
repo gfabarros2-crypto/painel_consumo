@@ -147,7 +147,7 @@ function createField(label, key, value, options = {}) {
   input.dataset.field = key;
   input.value = value ?? '';
   input.type = options.type || 'text';
-  if ((options.required || options.highlightMissing) && (value === null || value === undefined || value === '')) input.classList.add('needs-input');
+  if (options.highlightReview || ((options.required || options.highlightMissing) && (value === null || value === undefined || value === ''))) input.classList.add('needs-input');
   if (options.inputmode) input.inputMode = options.inputmode;
   if (options.placeholder) input.placeholder = options.placeholder;
   if (options.required) input.required = true;
@@ -163,16 +163,32 @@ function renderRows() {
     article.className = 'review-row';
     article.dataset.index = index;
     const heading = document.createElement('h3');
-    heading.textContent = `Registro ${index + 1}${row.needs_review ? ' · leitura incompleta' : ''}${publishedKeys.has(`${row.resource}:${row.period}`) ? ' · substituirá mês publicado' : ''}`;
+    heading.textContent = `Registro ${index + 1}${row.period_warning ? ' · conferir competência' : row.needs_review ? ' · leitura incompleta' : ''}${publishedKeys.has(`${row.resource}:${row.period}`) ? ' · substituirá mês publicado' : ''}`;
     article.append(heading);
+    if (row.period_warning) {
+      const warning = document.createElement('p');
+      warning.className = 'admin-alert';
+      warning.textContent = row.period_warning;
+      article.append(warning);
+    }
     const primary = document.createElement('div');
     primary.className = 'review-grid';
     primary.append(
-      createField('Competência (AAAA-MM)', 'period', row.period, { required: true, placeholder: '2026-09' }),
+      createField('Competência (AAAA-MM)', 'period', row.period, { required: true, highlightReview: Boolean(row.period_warning), placeholder: '2026-09' }),
       createField(`Consumo (${row.resource === 'water' ? 'm³' : 'kWh'})`, 'consumption', row.consumption, { highlightMissing: true, inputmode: 'decimal' }),
       createField('Total faturado (R$)', 'total_brl', row.total_brl, { highlightMissing: true, inputmode: 'decimal' }),
     );
     article.append(primary);
+    if (row.period_warning) {
+      const label = document.createElement('label');
+      label.className = 'checkbox period-confirmation';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.field = 'period_review_confirmed';
+      input.checked = row.period_review_confirmed === true;
+      label.append(input, document.createTextNode('Conferi o ano deste mês no PDF e confirmei a competência acima'));
+      article.append(label);
+    }
     const absence = document.createElement('div');
     absence.className = 'absence-checks';
     for (const [field, text] of [
@@ -241,7 +257,8 @@ function renderRows() {
 
 function collectRows(validate = true) {
   const collected = [...document.querySelectorAll('.review-row')].map((article) => {
-    const row = { resource: rows[Number(article.dataset.index)].resource };
+    const original = rows[Number(article.dataset.index)];
+    const row = { resource: original.resource, period_warning: original.period_warning };
     article.querySelectorAll('[data-field]').forEach((input) => {
       row[input.dataset.field] = input.type === 'checkbox' ? input.checked : input.value.trim();
     });
@@ -251,6 +268,7 @@ function collectRows(validate = true) {
   if (validate) {
     for (const row of collected) {
       if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(row.period)) throw new Error('Corrija a competência. Use AAAA-MM.');
+      if (row.period_warning && !row.period_review_confirmed) throw new Error(`Confira e confirme o ano de ${row.period} antes de publicar.`);
       if (Number.isNaN(row.consumption) || Number.isNaN(row.total_brl)) throw new Error(`Corrija os números de ${row.period}.`);
       if (row.consumption === null && row.total_brl === null) throw new Error(`Informe consumo ou total faturado de ${row.period}.`);
       if (row.consumption === null && !row.consumption_missing_confirmed) throw new Error(`Confirme a ausência do consumo em ${row.period} ou corrija o campo.`);
