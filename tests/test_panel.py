@@ -146,6 +146,24 @@ class ExtractorTests(unittest.TestCase):
 
 
 class StorageTests(unittest.TestCase):
+    def test_original_2022_records_survive_newer_imports(self):
+        original = json.loads((ROOT / "data" / "records.json").read_text(encoding="utf-8"))
+        before = {(row["resource"], row["period"]): row for row in original["records"]}
+        for resource in ("water", "energy"):
+            self.assertEqual(
+                [period for kind, period in before if kind == resource],
+                [f"2022-{month:02d}" for month in range(1, 10)],
+            )
+        self.assertEqual(before["water", "2022-09"]["consumption"], 6029)
+        self.assertEqual(before["energy", "2022-09"]["total_brl"], 97421.94)
+        self.assertIsNone(before["energy", "2022-09"]["consumption"])
+
+        newer = normalize_record({"resource": "energy", "period": "2025-12", "consumption": 347206, "total_brl": 113106.46})
+        server.apply_publication(original, [newer], "Teste", "", "2026-11-17T00:00:00+00:00")
+        after = {(row["resource"], row["period"]): row for row in original["records"]}
+        for key, row in before.items():
+            self.assertEqual(after[key], row)
+
     def test_private_blob_keeps_updates_and_imports(self):
         class FakeBlob:
             def __init__(self):

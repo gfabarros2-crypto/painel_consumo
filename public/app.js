@@ -59,6 +59,8 @@ function chooseResource(resource) {
   $('year-select').disabled = !years.length;
   $('month-select').disabled = !years.length;
   if (!periods.length) {
+    state.request++;
+    state.period = null;
     $('month-select').replaceChildren(new Option('—', ''));
     $('empty-detail').textContent = resource === 'water'
       ? 'Não há valores de água confirmados na base. Consulte a planilha oficial na seção de metodologia.'
@@ -74,8 +76,16 @@ function chooseResource(resource) {
 }
 
 function fillMonths(selectedMonth) {
-  $('month-select').replaceChildren(...months.map((name, index) => new Option(name, String(index + 1).padStart(2, '0'))));
-  $('month-select').value = selectedMonth;
+  const year = $('year-select').value;
+  const available = new Set(state.records
+    .filter((row) => row.resource === state.resource && row.period.startsWith(`${year}-`))
+    .map((row) => row.period.slice(5)));
+  $('month-select').replaceChildren(...months.flatMap((name, index) => {
+    const month = String(index + 1).padStart(2, '0');
+    return available.has(month) ? [new Option(name, month)] : [];
+  }));
+  $('month-select').value = selectedMonth && available.has(selectedMonth)
+    ? selectedMonth : [...available].sort().at(-1) || '';
 }
 
 async function renderPeriod() {
@@ -253,7 +263,7 @@ document.querySelectorAll('[role="tab"]').forEach((tab) => {
     $(`tab-${next}`).focus();
   });
 });
-$('year-select').addEventListener('change', () => { fillMonths('01'); renderPeriod(); });
+$('year-select').addEventListener('change', () => { fillMonths(); renderPeriod(); });
 $('month-select').addEventListener('change', renderPeriod);
 $('retry').addEventListener('click', load);
 load();
